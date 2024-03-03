@@ -1,4 +1,8 @@
 'use strict';
+
+const socket = io();
+const socket2 = io();
+
 const pc = new RTCPeerConnection();
 const pc2 = new RTCPeerConnection();
 const localVideo = document.getElementById('localVideo');
@@ -18,29 +22,45 @@ async function start() {
       pc2.addTrack(track, stream);
     }
     localVideo.srcObject = stream;
-
     await pc.setLocalDescription();
-    await pc2.setRemoteDescription(pc.localDescription);
-    await pc2.setLocalDescription();
-    await pc.setRemoteDescription(pc2.localDescription);
+    socket.emit('offer', pc.localDescription);
+    console.log('send offer', pc.localDescription);
   } catch (err) {
     console.error(err);
   }
 }
+socket2.on('offer', async (sdp) => {
+  await pc2.setRemoteDescription(sdp);
+  console.log('receive offer', sdp);
+  await pc2.setLocalDescription();
+  socket2.emit('answer', pc2.localDescription);
+  console.log('send answer', pc2.localDescription);
+});
+socket.on('answer', async (sdp) => {
+  console.log('receive answer', sdp);
+  await pc.setRemoteDescription(sdp);
+});
 // associated tracks with stream before
 pc.ontrack = ({ streams }) => {
   remoteVideo.srcObject = streams[0];
 };
 pc.onicecandidate = ({ candidate }) => {
   if (candidate !== null) {
-    pc2.addIceCandidate(candidate);
+    socket.emit('ice', candidate);
     console.log('send candidate', candidate);
   }
 };
+socket.on('ice', async (ice) => {
+  await pc.addIceCandidate(ice);
+})
 pc2.onicecandidate = ({ candidate }) => {
   if (candidate !== null) {
-    pc.addIceCandidate(candidate);
+    socket2.emit('ice', candidate);
     console.log('send candidate', candidate);
   }
 };
+socket2.on('ice', async (ice) => {
+  await pc2.addIceCandidate(ice);
+})
 start();
+

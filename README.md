@@ -14,6 +14,8 @@
 ## [addstream](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addstream_event)
 deprecated
 
+# [Signal](https://socket.io/zh-CN/docs/v4/server-api/#flag-broadcast)
+## [room](https://socket.io/zh-CN/docs/v4/rooms/)
 
 # [Pattern](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation)
 ## [polite](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/signalingState)
