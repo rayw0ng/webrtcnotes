@@ -9,15 +9,23 @@ const app = http.createServer((req, res) => {
   fileServer.serve(req, res);
 }).listen(8000);
 
+let room = 'foo';
 const io = new Server(app);
 io.on('connection', (socket) => {
-  socket.on('offer', (sdp) => {
-    socket.broadcast.emit('offer', sdp);
+  socket.join(room);
+  console.log(`${socket.id} joined ${room}`);
+  socket.emit('joined');
+
+  socket.on('message', (msg) => {
+    if (msg.type === 'sdp') {
+      console.log(`${socket.id} send ${msg.data.type}`);
+    } else {
+      console.log(`${socket.id} send candidate`);
+    }
+    socket.to(room).emit('message', msg);
   });
-  socket.on('answer', (sdp) => {
-    socket.broadcast.emit('answer', sdp);
-  });
-  socket.on('ice', (ice) => {
-    socket.broadcast.emit('ice', ice);
+
+  socket.on('ignore', (ignore, type, makingOffer, state) => {
+    console.log(`${socket.id} ignore offer: ${ignore} message type: ${type} makeingOffer: ${makingOffer} state: ${state}`);
   });
 });
