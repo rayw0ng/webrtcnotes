@@ -12,6 +12,7 @@ const config = {
 const pc = new RTCPeerConnection(config);
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
+const input = document.getElementById('input');
 
 async function start() {
   try {
@@ -28,6 +29,71 @@ async function start() {
     localVideo.srcObject = stream;
   } catch (err) {
     console.error(err);
+  }
+}
+
+const chunkSize = 64000;
+input.onchange = (e) => {
+  const inputFile = e.target.files[0];
+  input.value = null;
+  let chunkCount = 0;
+  let fileReader = new FileReader();
+  const dc = pc.createDataChannel('channel');
+
+  function sendChunk() {
+    const start = chunkSize * chunkCount;
+    const end = Math.min(inputFile.size, start + chunkSize);
+    fileReader.readAsArrayBuffer(inputFile.slice(start, end));
+  }
+
+  fileReader.onloadend = () => {
+    dc.send(fileReader.result);
+    chunkCount++;
+    if (chunkSize * chunkCount < inputFile.size) {
+      sendChunk();
+    }
+    console.log('send ', chunkCount);
+  }
+
+  dc.onopen = () => {
+    console.log('data channel open');
+    dc.send(JSON.stringify({
+      name: inputFile.name,
+      size: inputFile.size
+    }));
+    console.log('start send ', inputFile);
+    sendChunk();
+  }
+}
+
+pc.ondatachannel = (e) => {
+  const dc = e.channel;
+  let fileInfo;
+  let buffer;
+  let bytesReceived;
+  let isDownloading = false;
+
+  dc.onmessage = (msg) => {
+    if (isDownloading) {
+      bytesReceived += msg.data.byteLength;
+      console.log('downloaded ', bytesReceived);
+      buffer.push(msg.data);
+      if (bytesReceived === fileInfo.size) {
+        isDownloading = false;
+        console.log('download finished');
+        const blob = new Blob(buffer);
+        let anchor = document.createElement('a');
+        anchor.href = URL.createObjectURL(blob);
+        anchor.download = fileInfo.name;
+        anchor.click();
+      }
+    } else {
+      fileInfo = JSON.parse(msg.data.toString());
+      buffer = [];
+      bytesReceived = 0;
+      isDownloading = true;
+      console.log('start downloading ', msg);
+    }
   }
 }
 
