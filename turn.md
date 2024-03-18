@@ -23,6 +23,13 @@ then start the service
 sudo systemctl enable coturn
 sudo systemctl start coturn
 ```
+## use userdb
+edit `/etc/turnserver.conf` 
+```sh
+userdb=/var/lib/turn/turndb
+realm=realm1
+```
+then add user with `turnadmin -a -u username -p password -r realm1`
 # test
 ## turn server
 run `turnutils_peer` on the server, then run
